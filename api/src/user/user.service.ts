@@ -1,23 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, getRepository, DeleteResult } from 'typeorm';
-import { UserEntity } from './user.entity';
-const jwt = require('jsonwebtoken');
-import { SECRET } from '../config';
-import { User } from './user.interface';
-import { validate } from 'class-validator';
-import { HttpException } from '@nestjs/common/exceptions/http.exception';
-import { HttpStatus } from '@nestjs/common';
+import {HttpStatus, Injectable} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {DeleteResult, getRepository, Repository} from 'typeorm';
+import {UserEntity} from './user.entity';
+import {SECRET} from '../config';
+import {User} from './user.interface';
+import {validate} from 'class-validator';
+import {HttpException} from '@nestjs/common/exceptions/http.exception';
 import {CreateUserDto} from "./dto/create-user.dto";
 import {LoginUserDto} from "./dto/login-user.dto";
 import {UpdateUserDto} from "./dto/update-user.dto";
+import * as bcrypt from 'bcrypt';
+
+const jwt = require('jsonwebtoken');
 
 @Injectable()
 export class UserService {
     constructor(
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>
-    ) {}
+    ) {
+    }
 
     async findAll(): Promise<UserEntity[]> {
         return await this.userRepository.find();
@@ -29,7 +31,9 @@ export class UserService {
             return null;
         }
 
-
+        if (await bcrypt.compare(password, user.password)) {
+            return user;
+        }
         return user;
     }
 
@@ -39,8 +43,8 @@ export class UserService {
         const {username, email, password} = dto;
         const qb = await getRepository(UserEntity)
             .createQueryBuilder('user')
-            .where('user.username = :username', { username })
-            .orWhere('user.email = :email', { email });
+            .where('user.username = :username', {username})
+            .orWhere('user.email = :email', {email});
 
         const user = await qb.getOne();
 
@@ -79,10 +83,10 @@ export class UserService {
     }
 
     async delete(email: string): Promise<DeleteResult> {
-        return await this.userRepository.delete({ email: email});
+        return await this.userRepository.delete({email: email});
     }
 
-    async findById(id: number): Promise<User>{
+    async findById(id: number): Promise<User> {
         const user = await this.userRepository.findOne(id);
 
         if (!user) {
@@ -93,7 +97,7 @@ export class UserService {
         return this.buildUserRO(user);
     }
 
-    async findByEmail(email: string): Promise<User>{
+    async findByEmail(email: string): Promise<User> {
         const user = await this.userRepository.findOne({email: email});
         return this.buildUserRO(user);
     }
