@@ -5,7 +5,7 @@ import {HttpException} from '@nestjs/common/exceptions/http.exception';
 import {UserDecorator} from './user.decorator';
 
 
-import {ApiBearerAuth, ApiTags} from '@nestjs/swagger';
+import {ApiBearerAuth, ApiBody, ApiParam, ApiProperty, ApiTags} from '@nestjs/swagger';
 import {UpdateUserDto} from "./dto/update-user.dto";
 import {CreateUserDto} from "./dto/create-user.dto";
 import {LoginUserDto} from "./dto/login-user.dto";
@@ -21,7 +21,8 @@ export class UserController {
 
     @Get('user')
     @UseFilters(HttpExceptionFilters)
-    async findMe(@UserDecorator('email') email: string): Promise<User> {
+    @ApiParam({name: 'email', required: true, description: 'email', schema: { oneOf: [{type: 'string'}]}})
+    async findMe( @UserDecorator('email') email: string): Promise<User> {
         return await this.userService.findByEmail(email);
     }
 
@@ -30,14 +31,18 @@ export class UserController {
     async ping(): Promise<string> {
         return 'Alive';
     }
+    @ApiBody({ type: UpdateUserDto })
     @Put('user')
+    @ApiParam({name: 'id', required: true, description: 'user id', schema: { oneOf: [{type: 'integer'}]}})
     @UseFilters(HttpExceptionFilters)
     async update(@UserDecorator('id') userId: number, @Body('user') userData: UpdateUserDto) {
         return await this.userService.update(userId, userData);
     }
 
+
     @UsePipes(new ValidationPipe())
     @UseFilters(HttpExceptionFilters)
+    @ApiBody({ type: CreateUserDto })
     @Post('users')
     async create(@Body('user') userData: CreateUserDto) {
         return this.userService.create(userData);
@@ -49,6 +54,7 @@ export class UserController {
         return await this.userService.delete(params.slug);
     }
 
+    @ApiBody({ type: LoginUserDto })
     @UsePipes(new ValidationPipe())
     @UseFilters(HttpExceptionFilters)
     @Post('users/login')
